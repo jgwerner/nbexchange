@@ -27,6 +27,7 @@ class ExchangeList(abc.ExchangeList, Exchange):
     seen_assignments = {"fetched": [], "collected": []}
 
     def query_exchange(self):
+        # TODO: query the exchange with specific status of assignment (released, fetched, submitted)
         if self.course_id:
             """List assignments for specific course"""
             r = self.api_request(f"assignments?course_id={quote_plus(self.course_id)}")
@@ -54,26 +55,7 @@ class ExchangeList(abc.ExchangeList, Exchange):
     # sets self.assignments to be the list of assignment records that match the
     #  released/submitted/cached criteria configured
     def init_dest(self):
-        course_id = self.course_id if self.course_id else "*"
-        assignment_id = (
-            self.coursedir.assignment_id if self.coursedir.assignment_id else "*"
-        )
-        student_id = self.coursedir.student_id if self.coursedir.student_id else "*"
-
-        self.assignments = []
-
-        local_assignments = self.query_exchange()
-        self.log.debug(f"ExternalExchange.list.init_dest collected {local_assignments}")
-
-        # if "inbound", looking for inbound (submitted) records
-        # elif 'cached', looking for already downloaded files
-        # else, looking for outbound (released) files
-        if self.inbound or self.cached:
-            for assignment in local_assignments:
-                if assignment.get("status") == "submitted":
-                    self.assignments.append(assignment)
-        else:
-            self.assignments = local_assignments
+        pass
 
     def copy_files(self):
         pass
@@ -81,9 +63,12 @@ class ExchangeList(abc.ExchangeList, Exchange):
     ### We need to add feedback into submitted items
     ### (this may not be the best place to process them)
     def parse_assignment(self, assignment, local_assignments=None):
-        # For fetched & collected items - we want to know what the user has on-disk
-        # rather than what the exchange server things we have.
+        # For fetched items - we want to know what the user has on-disk
+        # rather than what the exchange server thinks we have.
         if local_assignments is not None:
+            # TODO: While this should do it, technically we probably want to filter out fetched assignments that
+            # are not on disk, and instead get which ever assignment has the latest release status
+            # NOTE: this implies that we have to get fetched and released whenever we try to get released.
             local_assignment = local_assignments.get(assignment.get("assignment_id"))
             if local_assignment is None and assignment.get("status") == "fetched":
                 assignment["status"] = "released"
@@ -123,16 +108,6 @@ class ExchangeList(abc.ExchangeList, Exchange):
     ### Needs 'notebook' ling moved to 'action'
     def parse_assignments(self):
         course_id = self.course_id if self.course_id and self.course_id != "*" else None
-        assignment_id = (
-            self.coursedir.assignment_id
-            if self.coursedir.assignment_id and self.coursedir.assignment_id != "*"
-            else None
-        )
-        student_id = (
-            self.coursedir.student_id
-            if self.coursedir.student_id and self.coursedir.student_id != "*"
-            else None
-        )
         self.assignments = []
         remote_assignments = self.query_exchange()
         local_assignments = None
@@ -142,7 +117,6 @@ class ExchangeList(abc.ExchangeList, Exchange):
                 self.get_local_assignments(
                     [x["assignment_id"] for x in remote_assignments],
                     course_id=course_id,
-                    user_id=student_id,
                 ),
             )
         except:

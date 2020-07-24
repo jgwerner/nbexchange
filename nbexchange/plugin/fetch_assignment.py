@@ -48,11 +48,13 @@ class ExchangeFetchAssignment(abc.ExchangeFetchAssignment, Exchange):
 
     # where in the user tree
     def init_dest(self):
-        if self.path_includes_course:
-            root = os.path.join(self.course_id, self.coursedir.assignment_id)
-        else:
-            root = self.coursedir.assignment_id
-        self.dest_path = os.path.abspath(os.path.join(self.assignment_dir, root))
+        # if self.path_includes_course:
+        #     root = os.path.join(self.course_id, self.coursedir.assignment_id)
+        # else:
+        #     root = self.coursedir.assignment_id
+        self.dest_path = self.construct_assignment_dir(
+            assignment_id=self.coursedir.assignment_id, course_id=self.course_id
+        )  # os.path.abspath(os.path.join(self.assignment_dir, root))
         if os.path.isdir(self.dest_path) and not self.replace_missing_files:
             self.fail(
                 f"You already have a copy of the assignment in this directory: {root}"

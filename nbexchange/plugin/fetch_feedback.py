@@ -28,9 +28,15 @@ class ExchangeFetchFeedback(abc.ExchangeFetchFeedback, Exchange):
             root = os.path.join(self.coursedir.course_id, self.coursedir.assignment_id)
         else:
             root = self.coursedir.assignment_id
-        self.dest_path = os.path.abspath(
-            os.path.join(self.assignment_dir, root, "feedback")
+        self.dest_path = self.construct_assignment_dir(
+            assignment_id=self.coursedir.assignment_id,
+            course_id=self.course_id,
+            subdir="feedback",
         )
+
+        # self.dest_path = os.path.abspath(
+        #     os.path.join(self.assignment_dir, root, "feedback")
+        # )
         os.makedirs(self.dest_path + "/", exist_ok=True)
         self.log.debug(f"ExchangeFetchFeedback.init_dest ensuring {self.dest_path}")
 
